@@ -32,6 +32,11 @@ class DeployTests(unittest.TestCase):
     def test_rejects_untrusted_downloads(self):
         for url in ['http://github.com/xlle-er/LOOI-DF26-Firmware/releases/x','https://github.com/other/repo/releases/x','https://github.com.evil.example/x','https://user:pw@github.com/xlle-er/LOOI-DF26-Firmware/releases/x']:
             self.assertFalse(cli.trusted_url(url))
+    def test_explicit_release_validation(self):
+        with self.assertRaises(cli.DeployError):cli.load_release('n16r8',release='../evil')
+        with patch.object(cli,'download',return_value=b'{"version":"2.0.2"}') as fetch:
+            with self.assertRaisesRegex(cli.DeployError,'version differ'):cli.load_release('n16r8',release='v2.1.0')
+            self.assertIn('/download/v2.1.0/looi-s3-usb.json',fetch.call_args.args[0])
     def test_local_release_checks_all_segments(self):
         source=Path(__file__).resolve().parents[2]/'LOOI-DF26-Firmware/dist'
         if not (source/'looi-s3-usb.json').exists():self.skipTest('No local release build')

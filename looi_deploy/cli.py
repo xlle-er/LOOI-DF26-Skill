@@ -93,10 +93,15 @@ def check_manifest(manifest, board):
         raise DeployError('Application metadata mismatch')
     return parts
 
-def load_release(board, local_dir=None):
+def load_release(board, local_dir=None, release="latest"):
     prefix = 'looi-s3' if board == 'n16r8' else 'looi-s3-n8r8'
+    if release != 'latest' and not re.fullmatch(r'v?\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', release):
+        raise DeployError('Use latest or an explicit release tag such as v2.1.0')
+    release_path = 'latest/download/' if release == 'latest' else 'download/' + ('v' + release.removeprefix('v')) + '/'
     manifest = json.loads((Path(local_dir) / (prefix + '-usb.json')).read_text() if local_dir else
-                          download(RELEASE + 'latest/download/' + prefix + '-usb.json', 65536))
+                          download(RELEASE + release_path + prefix + '-usb.json', 65536))
+    if release != "latest" and manifest.get("version") != release.removeprefix("v"):
+        raise DeployError("Release tag and manifest version differ")
     parts = check_manifest(manifest, board)
     images = []
     for part in parts:
@@ -235,7 +240,7 @@ def run(args):
         state = verify_state(serial_request(args.port, {'type': 'hardware_get'}), args.board, profile, args.version)
         return {'verified': True, 'record': record(state), 'device': state}
     if args.command == 'install':
-        manifest, images = load_release(args.board, args.assets)
+        manifest, images = load_release(args.board, args.assets, getattr(args, "release", "latest"))
         try:
             existing = serial_request(args.port, {'type': 'hardware_get'}, timeout=2)
         except DeployError as error:
@@ -285,7 +290,9 @@ def main():
         if command in ('install', 'configure'):
             p.add_argument('--use-default-pins', action='store_true')
             p.add_argument('--password-stdin', action='store_true', help='Read admin password from stdin, not argv')
-        if command == 'install': p.add_argument('--assets', help='Use locally prepared release directory')
+        if command == 'install':
+            p.add_argument('--assets', help='Use locally prepared release directory')
+            p.add_argument('--release', default='latest', help='Stable latest or explicit tag, e.g. v2.1.0 for a prerelease')
         if command == 'verify': p.add_argument('--version')
     args = parser.parse_args()
     try:

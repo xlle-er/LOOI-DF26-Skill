@@ -2,7 +2,7 @@
 
 用一句话让 Codex 或其他 Agent 部署 LOOI ESP32-S3 底盘；也可直接使用跨平台 Python 工具。支持 N16R8、N8R8 的 DevKitC-1 兼容开发板，官方默认接线和自定义 GPIO 共用同一份固件，接线保存在设备中。
 
-**当前需要配套固件 2.1.0 或更新版本。工具不会回退安装 2.0.x。2.1.0 尚未发布时，在线安装会报告没有兼容版本；维护者可以使用本地构建资产测试。** 固件、独立网页安装页和发布产物在 [LOOI-DF26-Firmware](https://github.com/xlle-er/LOOI-DF26-Firmware)。本仓库不包含固件二进制。
+**当前需要配套固件 2.1.0 或更新版本。工具不会回退安装 2.0.x。2.1.0 为预发布版，安装时显式添加 `--release v2.1.0`；默认 `latest` 只读取稳定版，稳定源没有兼容版本时会报错。此版尚未完成真机 USB、电机和 OTA 验收。** 固件、独立网页安装页和发布产物在 [LOOI-DF26-Firmware](https://github.com/xlle-er/LOOI-DF26-Firmware)。本仓库不包含固件二进制。
 
 ## 一句话安装 skill
 
@@ -12,7 +12,7 @@
 
 安装完成后，在下一条消息中开始部署：
 
-> 帮我通过 USB 部署 LOOI 底盘，先检查开发板，再询问我的接线。
+> 帮我通过 USB 部署 LOOI 底盘，使用 v2.1.0 预发布版，先检查开发板，再询问我的接线。
 
 Agent 会列出串口，确认模块型号和实际接线，执行检查、下载校验、烧录、配置和回读。依赖安装在项目独立环境中。安装 skill 本身不会烧录硬件；部署时不会自动点动电机、擦除 NVS 或覆盖未知分区。
 
@@ -27,7 +27,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e .
 .venv/bin/python -m looi_deploy.cli --json doctor
 .venv/bin/python -m looi_deploy.cli --json inspect --port /dev/cu.YOUR_DEVICE
-.venv/bin/python -m looi_deploy.cli --json install --port /dev/cu.YOUR_DEVICE --board n16r8 --use-default-pins
+.venv/bin/python -m looi_deploy.cli --json install --port /dev/cu.YOUR_DEVICE --board n16r8 --release v2.1.0 --use-default-pins
 ```
 
 Windows PowerShell：
@@ -39,7 +39,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 .\.venv\Scripts\python.exe -m looi_deploy.cli --json doctor
 .\.venv\Scripts\python.exe -m looi_deploy.cli --json inspect --port COM3
-.\.venv\Scripts\python.exe -m looi_deploy.cli --json install --port COM3 --board n8r8 --use-default-pins
+.\.venv\Scripts\python.exe -m looi_deploy.cli --json install --port COM3 --board n8r8 --release v2.1.0 --use-default-pins
 ```
 
 以上串口仅为示例。始终使用 `doctor` 中实际属于目标开发板的串口；多个设备时不能猜测。`--use-default-pins` 仅在实际接线符合下表时使用。已有配置的重装省略该参数即可保留；未配置设备需要明确选择默认接线或提供配置文件。
