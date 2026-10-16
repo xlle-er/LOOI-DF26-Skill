@@ -7,6 +7,8 @@ import json
 import os
 from pathlib import Path
 import re
+import ssl
+import certifi
 import subprocess
 import sys
 import tempfile
@@ -56,7 +58,7 @@ def download(url, limit):
     if not trusted_url(url):
         raise DeployError('Only official firmware release URLs are allowed')
     req = urllib.request.Request(url, headers={'User-Agent': 'looi-deploy/0.1'})
-    with urllib.request.build_opener(SafeRedirect).open(req, timeout=30) as response:
+    with urllib.request.build_opener(SafeRedirect, urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=certifi.where()))).open(req, timeout=30) as response:
         data = response.read(limit + 1)
     if len(data) > limit:
         raise DeployError('Release asset exceeds size limit')
