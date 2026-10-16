@@ -4,13 +4,17 @@
 
 **当前需要配套固件 2.1.0 或更新版本。工具不会回退安装 2.0.x。2.1.0 尚未发布时，在线安装会报告没有兼容版本；维护者可以使用本地构建资产测试。** 固件、独立网页安装页和发布产物在 [LOOI-DF26-Firmware](https://github.com/xlle-er/LOOI-DF26-Firmware)。本仓库不包含固件二进制。
 
-## 一句话部署
+## 一句话安装 skill
 
-安装本仓库的 `skills/looi-deploy` skill 后，对 Agent 说：
+把下面这一句话发给 Codex，Agent 会安装 skill，无需手动下载或复制目录：
 
-> 帮我通过 USB 部署 LOOI 底盘。先检查开发板，再询问我的接线。
+> 请从 https://github.com/xlle-er/LOOI-DF26-Skill/tree/main/skills/looi-deploy 安装 looi-deploy skill。
 
-Agent 会列出串口，确认模块型号和实际接线，执行检查、下载校验、烧录、配置和回读。依赖安装在项目独立环境中。不会自动点动电机，不会自动擦除 NVS 或覆盖未知分区。完整 skill 可通过支持 GitHub 子目录安装的 skill 安装器安装：仓库 `xlle-er/LOOI-DF26-Skill`，路径 `skills/looi-deploy`；也可将该目录复制到本机的 skills 目录。
+安装完成后，在下一条消息中开始部署：
+
+> 帮我通过 USB 部署 LOOI 底盘，先检查开发板，再询问我的接线。
+
+Agent 会列出串口，确认模块型号和实际接线，执行检查、下载校验、烧录、配置和回读。依赖安装在项目独立环境中。安装 skill 本身不会烧录硬件；部署时不会自动点动电机、擦除 NVS 或覆盖未知分区。
 
 ## 手动使用
 
@@ -87,5 +91,11 @@ py -3 -m venv .venv
 `looi_deploy/boards.json` 来自固件仓库 `hardware/boards.json`；修改硬件支持范围时同步生成，固件仓库的 contracts 检查两者一致。.github/workflows/test.yml 在 macOS、Windows、Linux 上运行 Python 3.10/3.12 的测试和 doctor。CI 不能替代各系统的真实 USB、两种模块、供电、电机和 OTA 验收。本次本地验证为 macOS，Windows/Linux 真机 USB 与电机测试仍待完成。
 
 ## English
+
+Send this sentence to Codex to install the skill:
+
+> Install the looi-deploy skill from https://github.com/xlle-er/LOOI-DF26-Skill/tree/main/skills/looi-deploy.
+
+Then send a new message: “Deploy my LOOI robot over USB; inspect the board first and ask me how the motors are wired.” Installing the skill itself does not flash hardware.
 
 USB deployment and installable agent skill for LOOI DF26, supporting ESP32-S3 N16R8 and N8R8 DevKitC-1-compatible boards. Requires Python 3.10+ and matching firmware 2.1.0+. Install in a project virtual environment with `pip install -e .`, run `python -m looi_deploy.cli --json doctor`, then inspect an explicit port. Install with `--board n16r8` or `--board n8r8` and confirmed `--use-default-pins` or `--profile FILE`. Existing valid wiring is preserved when neither option is supplied. `configure` updates persistent wiring without recompiling or flashing; `verify` checks firmware, physical memory and all six GPIOs. Compatible official OTA retains wiring. Unknown partitions, incompatible boards and invalid/reserved GPIOs fail closed. No motor commands are sent by this tool.
