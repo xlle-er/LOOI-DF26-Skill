@@ -84,7 +84,7 @@ py -3 -m venv .venv
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-`looi_deploy/boards.json` 来自固件仓库 `hardware/boards.json`；修改硬件支持范围时同步生成，固件仓库的 contracts 检查两者一致。`ci/test.yml` 提供三种系统的 Python 测试和 doctor 工作流模板。当前 GitHub OAuth 令牌缺少 workflow 权限，因此没有启用 Actions；获得该权限后可将模板移至 `.github/workflows/test.yml`。CI 不能替代各系统的真实 USB、两种模块、供电、电机和 OTA 验收。本次本地验证为 macOS，Windows/Linux 真机 USB 与电机测试仍待完成。
+`looi_deploy/boards.json` 来自固件仓库 `hardware/boards.json`；修改硬件支持范围时同步生成，固件仓库的 contracts 检查两者一致。.github/workflows/test.yml 在 macOS、Windows、Linux 上运行 Python 3.10/3.12 的测试和 doctor。CI 不能替代各系统的真实 USB、两种模块、供电、电机和 OTA 验收。本次本地验证为 macOS，Windows/Linux 真机 USB 与电机测试仍待完成。
 
 ## English
 

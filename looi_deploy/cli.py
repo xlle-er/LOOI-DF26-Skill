@@ -88,6 +88,9 @@ def check_manifest(manifest, board):
         raise DeployError('Overlapping USB segments')
     if next(p['sha256'] for p in parts if p['offset'] == 0x8000) != manifest.get('partition_sha256'):
         raise DeployError('Partition digest mismatch')
+    app = next(p for p in parts if p['offset'] == 0x10000)
+    if app['size'] != manifest.get('size') or app['sha256'] != manifest.get('sha256'):
+        raise DeployError('Application metadata mismatch')
     return parts
 
 def load_release(board, local_dir=None):
