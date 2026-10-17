@@ -9,6 +9,12 @@ from looi_deploy import cli
 class DeployTests(unittest.TestCase):
     def setUp(self):
         self.profile={'version':1,'board':'n16r8','pins':dict(cli.BOARDS['n16r8']['default_pins'])}
+    def test_device_names(self):
+        for name in ["小乐", "一二三四五六七八", "Looi 42"]:
+            self.assertEqual(cli.validate_device_name(name), name)
+        for name in ["", "   ", "一二三四五六七八九", "a\n", "a" * 25]:
+            with self.assertRaises(cli.DeployError): cli.validate_device_name(name)
+
     def test_gpio_validation(self):
         self.assertEqual(cli.validate_profile(self.profile),self.profile)
         for pin in [True,'17',17.5,0,3,19,20,33,38,43,44,45,46,48,49,16]:

@@ -27,6 +27,12 @@ class DeployError(Exception):
         super().__init__(message)
         self.code = code
 
+def validate_device_name(name):
+    if not name or not name.strip() or len(name.encode('utf-8')) > 24 or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in name):
+        raise DeployError('Device name must contain visible text and fit 24 UTF-8 bytes')
+    return name
+
+
 def validate_profile(profile):
     if not isinstance(profile, dict) or profile.get('board') not in BOARDS:
         raise DeployError('Choose n16r8 or n8r8 and confirm the physical module marking')
@@ -218,6 +224,8 @@ def record(state):
     return str(path.resolve())
 
 def run(args):
+    if getattr(args, "name", None) is not None:
+        validate_device_name(args.name)
     import serial.tools.list_ports
     if args.command == 'doctor':
         return {'platform': sys.platform, 'python': sys.version.split()[0],
@@ -277,6 +285,13 @@ def run(args):
     time.sleep(2)
     state = verify_state(wait_for_device(args.port), args.board, profile,
                          manifest['version'] if args.command == 'install' else None)
+    if getattr(args, 'name', None) is not None:
+        serial_request(args.port, {'type': 'device_name_set', 'name': args.name, 'admin_password': password})
+        time.sleep(2)
+        state = verify_state(wait_for_device(args.port), args.board, profile,
+                             manifest['version'] if args.command == 'install' else None)
+        if state.get('name') != 'LOOI-' + args.name or state.get('ap_ssid') != 'LOOI-' + args.name or not state.get('device_name_custom'):
+            raise DeployError('Device name readback mismatch', 5)
     return {'verified': True, 'record': record(state), 'device': state}
 
 def main():
@@ -291,6 +306,7 @@ def main():
             p.add_argument('--profile', help='JSON hardware profile file')
         if command in ('install', 'configure'):
             p.add_argument('--use-default-pins', action='store_true')
+            p.add_argument('--name', help='Optional device name, Chinese supported; maximum 24 UTF-8 bytes')
             p.add_argument('--password-stdin', action='store_true', help='Read admin password from stdin, not argv')
         if command == 'install':
             p.add_argument('--assets', help='Use locally prepared release directory')

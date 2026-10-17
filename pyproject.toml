@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "looi-df26-deploy"
-version = "0.1.0"
+version = "0.2.0"
 description = "LOOI ESP32-S3 USB installation and persistent wiring configuration"
 requires-python = ">=3.10"
 dependencies = ["esptool==5.1.0", "pyserial==3.5", "certifi>=2024.8.30"]
