@@ -1,6 +1,5 @@
 """Cross-platform, explicit-port USB deployment. Never executes motor commands."""
 import argparse
-import getpass
 import hashlib
 import importlib.metadata
 import json
@@ -21,6 +20,7 @@ BOARDS = json.loads(Path(__file__).with_name('boards.json').read_text())
 RELEASE = 'https://github.com/xlle-er/LOOI-DF26-Firmware/releases/'
 PIN_NAMES = ('ena', 'in1', 'in2', 'in3', 'in4', 'enb')
 MAX_APP = 0x300000
+INITIAL_ADMIN_PASSWORD = '12345678'
 
 class DeployError(Exception):
     def __init__(self, message, code=2):
@@ -104,7 +104,7 @@ def check_manifest(manifest, board):
 def load_release(board, local_dir=None, release="latest"):
     prefix = 'looi-s3' if board == 'n16r8' else 'looi-s3-n8r8'
     if release != 'latest' and not re.fullmatch(r'v?\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', release):
-        raise DeployError('Use latest or an explicit release tag such as v2.1.0')
+        raise DeployError('Use latest or an explicit release tag')
     release_path = 'latest/download/' if release == 'latest' else 'download/' + ('v' + release.removeprefix('v')) + '/'
     manifest = json.loads((Path(local_dir) / (prefix + '-usb.json')).read_text() if local_dir else
                           download(RELEASE + release_path + prefix + '-usb.json', 65536))
@@ -223,6 +223,16 @@ def record(state):
     path.write_text(json.dumps(data, indent=2) + '\n')
     return str(path.resolve())
 
+def admin_request(args, values, password):
+    try:
+        return serial_request(args.port, {**values, 'admin_password': password})
+    except DeployError as error:
+        if not getattr(args, 'password_stdin', False) and 'administrator password required' in str(error).lower():
+            raise DeployError('This device has previously configured credentials. '
+                              'For an existing device, provide its current credentials with --password-stdin. '
+                              'No credentials were reset.', 5) from error
+        raise
+
 def run(args):
     if getattr(args, "name", None) is not None:
         validate_device_name(args.name)
@@ -280,13 +290,13 @@ def run(args):
         profile = profile_from_args(args, state)
         if profile['board'] != args.board:
             raise DeployError('Selected profile and configuration board differ')
-    password = sys.stdin.readline().rstrip('\r\n') if args.password_stdin else getpass.getpass('Device admin password (initial: 12345678): ')
-    serial_request(args.port, {'type': 'hardware_set', 'hardware_profile': profile, 'admin_password': password})
+    password = sys.stdin.readline().rstrip('\r\n') if getattr(args, 'password_stdin', False) else INITIAL_ADMIN_PASSWORD
+    admin_request(args, {'type': 'hardware_set', 'hardware_profile': profile}, password)
     time.sleep(2)
     state = verify_state(wait_for_device(args.port), args.board, profile,
                          manifest['version'] if args.command == 'install' else None)
     if getattr(args, 'name', None) is not None:
-        serial_request(args.port, {'type': 'device_name_set', 'name': args.name, 'admin_password': password})
+        admin_request(args, {'type': 'device_name_set', 'name': args.name}, password)
         time.sleep(2)
         state = verify_state(wait_for_device(args.port), args.board, profile,
                              manifest['version'] if args.command == 'install' else None)
@@ -307,10 +317,10 @@ def main():
         if command in ('install', 'configure'):
             p.add_argument('--use-default-pins', action='store_true')
             p.add_argument('--name', help='Optional device name, Chinese supported; maximum 24 UTF-8 bytes')
-            p.add_argument('--password-stdin', action='store_true', help='Read admin password from stdin, not argv')
+            p.add_argument('--password-stdin', action='store_true', help='Existing devices only: read current credentials from stdin; first installation needs no password input')
         if command == 'install':
             p.add_argument('--assets', help='Use locally prepared release directory')
-            p.add_argument('--release', default='latest', help='Stable latest or explicit tag, e.g. v2.1.0 for a prerelease')
+            p.add_argument('--release', default='latest', help='Latest official stable release (default), or an explicit release tag')
         if command == 'verify': p.add_argument('--version')
     args = parser.parse_args()
     try:
